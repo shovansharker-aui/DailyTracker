@@ -20,8 +20,8 @@ abstract class KinKeepDatabase : RoomDatabase() {
                     KinKeepDatabase::class.java,
                     "kinkeep_database"
                 )
-                    .fallbackToDestructiveMigration()
-                    .build()
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

@@ -1,5 +1,6 @@
 package com.dailytracker.app.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -90,20 +91,16 @@ private val VibrantLightColorScheme = lightColorScheme(
     onErrorContainer = LightOnErrorContainer
 )
 
-/**
- * App-wide theme. themeMode is a user preference string persisted separately
- * (see SuperAppViewModel / SettingsScreen): "DARK", "LIGHT" (vibrant), or
- * anything else falls back to the default monochrome light scheme.
- */
 @Composable
 fun DailyTrackerTheme(
     themeMode: String = "MONOCHROME",
+    darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (themeMode) {
         "DARK" -> DarkColorScheme
         "LIGHT" -> VibrantLightColorScheme
-        else -> LightColorScheme // MONOCHROME / Default
+        else -> if (darkTheme) DarkColorScheme else LightColorScheme // MONOCHROME / Default: follow system
     }
 
     MaterialTheme(

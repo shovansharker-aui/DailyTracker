@@ -1,0 +1,403 @@
+package com.dailytracker.app.ui
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.dailytracker.app.data.CallRecord
+import com.dailytracker.app.data.ContactDao
+import com.dailytracker.app.data.ContactRepository
+import com.dailytracker.app.data.ContactStatus
+import com.dailytracker.app.data.KinKeepDatabase
+import com.dailytracker.app.data.TrackedContact
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+data class ContactWithStats(
+    val contact: TrackedContact,
+    val callsInCurrentPeriod: Int,
+    val status: ContactStatus,
+    val daysSinceLastCall: Long?
+)
+
+enum class FilterCategory(val label: String) {
+    ALL("All"),
+    OVERDUE("Overdue / Due Soon"),
+    FAVORITES("Pinned")
+}
+
+data class WeeklyActivity(
+    val weekLabel: String,
+    val durationMinutes: Float
+)
+
+data class ConnectionHealthBreakdown(
+    val onTrackCount: Int = 0,
+    val pendingCount: Int = 0,
+    val overdueCount: Int = 0,
+    val totalContacts: Int = 0,
+    val healthPercentage: Int = 0
+)
+
+data class DashboardAnalyticsState(
+    val connectionHealth: ConnectionHealthBreakdown = ConnectionHealthBreakdown(),
+    val weeklyActivities: List<WeeklyActivity> = emptyList(),
+    val topOverdueContacts: List<ContactWithStats> = emptyList(),
+    val recentCallRecords: List<CallRecord> = emptyList()
+)
+
+data class KinKeepUiState(
+    val contactsWithStats: List<ContactWithStats> = emptyList(),
+    val filteredContacts: List<ContactWithStats> = emptyList(),
+    val selectedFilter: FilterCategory = FilterCategory.ALL,
+    val isLoading: Boolean = false,
+    val syncMessage: String? = null,
+    val totalOverdueCount: Int = 0,
+    val totalOnTrackCount: Int = 0,
+    val analyticsState: DashboardAnalyticsState = DashboardAnalyticsState()
+)
+
+class KinKeepViewModel(application: Application) : AndroidViewModel(application) {
+    private val database = KinKeepDatabase.getDatabase(application)
+    private val repository = ContactRepository(database.contactDao(), application)
+
+    private val _selectedFilter = MutableStateFlow(FilterCategory.ALL)
+    val selectedFilter = _selectedFilter.asStateFlow()
+
+    private val _syncMessage = MutableStateFlow<String?>(null)
+    val syncMessage = _syncMessage.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
+
+    // Dialog & Detail states
+    private val _selectedContactForDetails = MutableStateFlow<ContactWithStats?>(null)
+    val selectedContactForDetails = _selectedContactForDetails.asStateFlow()
+
+    private val _contactCallHistory = MutableStateFlow<List<CallRecord>>(emptyList())
+    val contactCallHistory = _contactCallHistory.asStateFlow()
+
+    private val _showAddEditSheet = MutableStateFlow(false)
+    val showAddEditSheet = _showAddEditSheet.asStateFlow()
+
+    private val _contactToEdit = MutableStateFlow<TrackedContact?>(null)
+    val contactToEdit = _contactToEdit.asStateFlow()
+
+    // Night mode preferences
+    private val prefs = application.getSharedPreferences("kinkeep_prefs", android.content.Context.MODE_PRIVATE)
+    private val _nightMode = MutableStateFlow(prefs.getString("night_mode", "SYSTEM") ?: "SYSTEM")
+    val nightMode = _nightMode.asStateFlow()
+
+    fun setNightMode(mode: String) {
+        _nightMode.value = mode
+        prefs.edit().putString("night_mode", mode).apply()
+    }
+
+    val uiState: StateFlow<KinKeepUiState> = combine(
+        repository.allContacts,
+        repository.allRecentCallRecords,
+        _selectedFilter,
+        _isLoading,
+        _syncMessage
+    ) { contacts, callRecords, filter, loading, msg ->
+        val now = System.currentTimeMillis()
+        val statsList = contacts.map { contact ->
+            val periodCalls = repository.getCallsInCurrentPeriod(contact)
+            val status = contact.getCalculatedStatus(periodCalls, now)
+            val daysSince = contact.getDaysSinceLastCall(now)
+            ContactWithStats(
+                contact = contact,
+                callsInCurrentPeriod = periodCalls,
+                status = status,
+                daysSinceLastCall = daysSince
+            )
+        }
+
+        val onTrackCount = statsList.count { it.status == ContactStatus.ON_TRACK }
+        val pendingCount = statsList.count { it.status == ContactStatus.DUE_SOON }
+        val overdueCount = statsList.count { it.status == ContactStatus.OVERDUE || it.status == ContactStatus.NEVER_CALLED }
+        val totalCount = statsList.size
+
+        val healthPercentage = if (totalCount > 0) ((onTrackCount.toFloat() / totalCount.toFloat()) * 100).toInt() else 100
+
+        // Weekly Call Activity over past 4 weeks
+        val weekMs = 7L * 24 * 60 * 60 * 1000
+        val w1Start = now - weekMs
+        val w2Start = now - (2L * weekMs)
+        val w3Start = now - (3L * weekMs)
+        val w4Start = now - (4L * weekMs)
+
+        var w1Mins = 0f
+        var w2Mins = 0f
+        var w3Mins = 0f
+        var w4Mins = 0f
+
+        callRecords.forEach { rec ->
+            val durationMins = (if (rec.durationSeconds > 0) rec.durationSeconds else 300) / 60f
+            when {
+                rec.timestamp >= w1Start -> w1Mins += durationMins
+                rec.timestamp in w2Start..<w1Start -> w2Mins += durationMins
+                rec.timestamp in w3Start..<w2Start -> w3Mins += durationMins
+                rec.timestamp in w4Start..<w3Start -> w4Mins += durationMins
+            }
+        }
+
+        val weeklyActivities = listOf(
+            WeeklyActivity("3 Wks Ago", w4Mins),
+            WeeklyActivity("2 Wks Ago", w3Mins),
+            WeeklyActivity("Last Wk", w2Mins),
+            WeeklyActivity("This Wk", w1Mins)
+        )
+
+        val topOverdueList = statsList
+            .filter { it.status == ContactStatus.OVERDUE || it.status == ContactStatus.NEVER_CALLED || it.status == ContactStatus.DUE_SOON }
+            .sortedByDescending { item ->
+                val daysSince = item.daysSinceLastCall ?: 30L
+                val maxAllowed = when (item.contact.getPeriodEnum()) {
+                    com.dailytracker.app.data.FrequencyPeriod.DAY -> 1L
+                    com.dailytracker.app.data.FrequencyPeriod.WEEK -> (7L / item.contact.targetCount.coerceAtLeast(1))
+                    com.dailytracker.app.data.FrequencyPeriod.MONTH -> (30L / item.contact.targetCount.coerceAtLeast(1))
+                }
+                val daysOverdue = (daysSince - maxAllowed).coerceAtLeast(1L)
+                daysOverdue * item.contact.priorityWeight
+            }
+            .take(5)
+
+        val filtered = statsList.filter { item ->
+            when (filter) {
+                FilterCategory.ALL -> true
+                FilterCategory.OVERDUE -> item.status == ContactStatus.OVERDUE || item.status == ContactStatus.DUE_SOON || item.status == ContactStatus.NEVER_CALLED
+                FilterCategory.FAVORITES -> item.contact.pinned
+            }
+        }
+
+        val state = KinKeepUiState(
+            contactsWithStats = statsList,
+            filteredContacts = filtered,
+            selectedFilter = filter,
+            isLoading = loading,
+            syncMessage = msg,
+            totalOverdueCount = overdueCount,
+            totalOnTrackCount = onTrackCount,
+            analyticsState = DashboardAnalyticsState(
+                connectionHealth = ConnectionHealthBreakdown(
+                    onTrackCount = onTrackCount,
+                    pendingCount = pendingCount,
+                    overdueCount = overdueCount,
+                    totalContacts = totalCount,
+                    healthPercentage = healthPercentage
+                ),
+                weeklyActivities = weeklyActivities,
+                topOverdueContacts = topOverdueList,
+                recentCallRecords = callRecords
+            )
+        )
+
+        // Check reminders for target deadlines
+        try {
+            com.dailytracker.app.util.CallReminderManager.checkAndTriggerReminders(getApplication(), statsList)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        state
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = KinKeepUiState()
+    )
+
+    fun onFilterSelected(filter: FilterCategory) {
+        _selectedFilter.value = filter
+    }
+
+    fun syncCallLogs() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            _syncMessage.value = "Scanning phone call logs..."
+            val contacts = repository.allContacts.first()
+            val newSynced = repository.syncDeviceCallLogs(contacts)
+            _isLoading.value = false
+            _syncMessage.value = if (newSynced > 0) "Synced $newSynced call record(s) from phone!" else "Call logs up to date."
+        }
+    }
+
+    fun clearSyncMessage() {
+        _syncMessage.value = null
+    }
+
+    private var historyJob: Job? = null
+
+    fun openContactDetails(item: ContactWithStats) {
+        _selectedContactForDetails.value = item
+        historyJob?.cancel()
+        historyJob = viewModelScope.launch {
+            repository.getCallRecordsForContact(item.contact.id).collect { history ->
+                _contactCallHistory.value = history
+            }
+        }
+    }
+
+    fun openContactDetailsById(contactId: Long) {
+        viewModelScope.launch {
+            val statsList = repository.allContacts.first()
+            val contact = statsList.find { it.id == contactId } ?: return@launch
+            val callsCount = repository.getCallsInCurrentPeriod(contact)
+            val status = contact.getCalculatedStatus(callsCount)
+            val daysSince = if (contact.lastCalledTimestamp > 0L) {
+                (System.currentTimeMillis() - contact.lastCalledTimestamp) / (24 * 60 * 60 * 1000L)
+            } else null
+
+            openContactDetails(ContactWithStats(contact, callsCount, status, daysSince))
+        }
+    }
+
+    fun closeContactDetails() {
+        historyJob?.cancel()
+        _selectedContactForDetails.value = null
+        _contactCallHistory.value = emptyList()
+    }
+
+    fun openAddContactSheet() {
+        _contactToEdit.value = null
+        _showAddEditSheet.value = true
+    }
+
+    fun openEditContactSheet(contact: TrackedContact) {
+        _contactToEdit.value = contact
+        _showAddEditSheet.value = true
+    }
+
+    fun closeAddEditSheet() {
+        _showAddEditSheet.value = false
+        _contactToEdit.value = null
+    }
+
+    fun saveContact(
+        id: Long = 0,
+        name: String,
+        phone: String,
+        relationship: String,
+        targetCount: Int,
+        frequencyPeriod: String,
+        notes: String,
+        colorHex: String,
+        pinned: Boolean,
+        photoUri: String = "",
+        priorityWeight: Int = 3
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val contactToSave = if (id > 0) {
+                val existing = repository.getContactByIdSync(id)
+                existing?.copy(
+                    name = name,
+                    phoneNumber = phone,
+                    relationship = relationship,
+                    targetCount = targetCount,
+                    frequencyPeriod = frequencyPeriod,
+                    notes = notes,
+                    avatarColorHex = colorHex,
+                    pinned = pinned,
+                    photoUri = photoUri,
+                    priorityWeight = priorityWeight
+                ) ?: TrackedContact(
+                    id = id,
+                    name = name,
+                    phoneNumber = phone,
+                    relationship = relationship,
+                    targetCount = targetCount,
+                    frequencyPeriod = frequencyPeriod,
+                    notes = notes,
+                    avatarColorHex = colorHex,
+                    pinned = pinned,
+                    photoUri = photoUri,
+                    priorityWeight = priorityWeight
+                )
+            } else {
+                TrackedContact(
+                    name = name,
+                    phoneNumber = phone,
+                    relationship = relationship,
+                    targetCount = targetCount,
+                    frequencyPeriod = frequencyPeriod,
+                    notes = notes,
+                    avatarColorHex = colorHex,
+                    pinned = pinned,
+                    photoUri = photoUri,
+                    priorityWeight = priorityWeight
+                )
+            }
+            repository.insertContact(contactToSave)
+            _showAddEditSheet.value = false
+        }
+    }
+
+    fun deleteContact(contact: TrackedContact) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteContact(contact)
+            if (_selectedContactForDetails.value?.contact?.id == contact.id) {
+                closeContactDetails()
+            }
+        }
+    }
+
+    fun togglePin(contact: TrackedContact) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateContact(contact.copy(pinned = !contact.pinned))
+        }
+    }
+
+    fun updateContactColor(contact: TrackedContact, newColorHex: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateContact(contact.copy(avatarColorHex = newColorHex))
+        }
+    }
+
+
+
+    fun exportBackup(context: android.content.Context, uri: android.net.Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                com.dailytracker.app.data.BackupManager.exportBackup(context, uri)
+                _syncMessage.value = "Backup saved"
+            } catch (e: Exception) {
+                _syncMessage.value = "Export failed: ${e.message}"
+            }
+        }
+    }
+
+    fun importBackup(context: android.content.Context, uri: android.net.Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                com.dailytracker.app.data.BackupManager.importBackup(context, uri)
+                _syncMessage.value = "Backup restored"
+            } catch (e: Exception) {
+                _syncMessage.value = "Restore failed: ${e.message}"
+            }
+        }
+    }
+
+
+
+    fun simulateCallFromSystem(contact: TrackedContact) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val now = System.currentTimeMillis()
+            repository.logCallForContact(
+                contactId = contact.id,
+                timestamp = now,
+                durationSeconds = (180..600).random(),
+                callType = if (Math.random() > 0.3) "OUTGOING" else "INCOMING",
+                notes = "Simulated call history entry"
+            )
+            _syncMessage.value = "Simulated new phone call with ${contact.name}!"
+        }
+    }
+}

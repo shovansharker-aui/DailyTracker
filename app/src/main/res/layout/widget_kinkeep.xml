@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_bg">
+
+    <!-- Header Row -->
+    <LinearLayout
+        android:id="@+id/widget_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="8dp">
+
+        <ImageView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:src="@android:drawable/ic_menu_call"
+            android:contentDescription="KinKeep Icon" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="KinKeep • Overdue Calls"
+            android:textColor="#006874"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#D0E4E7"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Contact Row 1 -->
+    <LinearLayout
+        android:id="@+id/widget_contact_row_1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingVertical="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_contact_name_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contact 1"
+                android:textColor="#191C1D"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_contact_days_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last called 5 days ago"
+                android:textColor="#525E7D"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_contact_status_1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Overdue"
+            android:textColor="#C62828"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp" />
+    </LinearLayout>
+
+    <!-- Contact Row 2 -->
+    <LinearLayout
+        android:id="@+id/widget_contact_row_2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingVertical="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_contact_name_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contact 2"
+                android:textColor="#191C1D"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_contact_days_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last called 3 days ago"
+                android:textColor="#525E7D"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_contact_status_2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Due Soon"
+            android:textColor="#E65100"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp" />
+    </LinearLayout>
+
+    <!-- Contact Row 3 -->
+    <LinearLayout
+        android:id="@+id/widget_contact_row_3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingVertical="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_contact_name_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Contact 3"
+                android:textColor="#191C1D"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_contact_days_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Last called 2 days ago"
+                android:textColor="#525E7D"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_contact_status_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Due Soon"
+            android:textColor="#E65100"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp" />
+    </LinearLayout>
+
+    <!-- Empty view if all contacts are on track -->
+    <TextView
+        android:id="@+id/widget_empty_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="All call goals on track! 🎉"
+        android:textColor="#2E7D32"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingVertical="12dp"
+        android:visibility="visible" />
+
+</LinearLayout>

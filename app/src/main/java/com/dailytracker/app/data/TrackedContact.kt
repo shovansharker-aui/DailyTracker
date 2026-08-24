@@ -62,7 +62,7 @@ data class TrackedContact(
         if (callsInCurrentPeriod >= targetCount) {
             return ContactStatus.ON_TRACK
         }
-
+        
         val period = getPeriodEnum()
         val daysSince = getDaysSinceLastCall(now) ?: Long.MAX_VALUE
 
