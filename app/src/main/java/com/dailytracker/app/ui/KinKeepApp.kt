@@ -553,7 +553,7 @@ fun KinKeepApp(
             item = detailItem,
             callHistory = callHistory,
             onDismiss = { viewModel.closeContactDetails() },
-            onSimulateCallClick = { viewModel.simulateCallFromSystem(detailItem.contact) },
+            onLogCallClick = { viewModel.logManualCall(detailItem.contact) },
             onEditClick = {
                 viewModel.closeContactDetails()
                 viewModel.openEditContactSheet(detailItem.contact)

@@ -141,7 +141,7 @@ class KinKeepWidgetProvider : AppWidgetProvider() {
 
                     appWidgetManager.updateAppWidget(appWidgetId, views)
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    android.util.Log.e("KinKeepWidgetProvider", "Failed to update widget $appWidgetId", e)
                 }
             }
         }

@@ -101,16 +101,30 @@ class CallLogScanner(private val context: Context, private val contactDao: Conta
         return contacts.firstOrNull { contact ->
             contact.getPhoneNumbersList().any { phoneNum ->
                 val cleanTarget = normalizePhoneNumber(phoneNum)
-                if (cleanTarget.isEmpty()) false
-                else if (cleanRaw == cleanTarget) true
-                else if (cleanRaw.length >= 7 && cleanTarget.length >= 7 &&
-                    (cleanRaw.endsWith(cleanTarget) || cleanTarget.endsWith(cleanRaw))) true
-                else false
+                cleanTarget.isNotEmpty() && numbersLikelyMatch(cleanRaw, cleanTarget)
             }
         }
     }
 
+    /**
+     * Compares two normalized (digits-only) numbers using a fixed-length window of the
+     * last [LOCAL_NUMBER_MATCH_LENGTH] digits, rather than open-ended mutual suffix
+     * matching. Open-ended suffix matching (e.g. "does either end with the other") can
+     * false-match two unrelated numbers that happen to share a long common ending —
+     * a fixed window tied to local number length is much less prone to that.
+     */
+    private fun numbersLikelyMatch(a: String, b: String): Boolean {
+        if (a == b) return true
+        if (a.length < LOCAL_NUMBER_MATCH_LENGTH || b.length < LOCAL_NUMBER_MATCH_LENGTH) return false
+        return a.takeLast(LOCAL_NUMBER_MATCH_LENGTH) == b.takeLast(LOCAL_NUMBER_MATCH_LENGTH)
+    }
+
     companion object {
+        // Matches on the last 10 digits, which covers a full local subscriber number
+        // (e.g. Bangladesh mobile numbers) while ignoring country-code/leading-zero
+        // differences between how a number was saved vs how the call log reports it.
+        private const val LOCAL_NUMBER_MATCH_LENGTH = 10
+
         fun normalizePhoneNumber(phone: String): String {
             return phone.replace(Regex("[^0-9]"), "")
         }

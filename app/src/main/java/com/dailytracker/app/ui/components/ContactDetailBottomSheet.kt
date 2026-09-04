@@ -25,8 +25,8 @@ import androidx.compose.material.icons.filled.CallMade
 import androidx.compose.material.icons.filled.CallReceived
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PhoneCallback
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -72,8 +72,7 @@ fun ContactDetailBottomSheet(
     item: ContactWithStats,
     callHistory: List<CallRecord>,
     onDismiss: () -> Unit,
-    onLogCallClick: () -> Unit = {},
-    onSimulateCallClick: () -> Unit,
+    onLogCallClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
@@ -258,11 +257,11 @@ fun ContactDetailBottomSheet(
                 }
 
                 OutlinedButton(
-                    onClick = onSimulateCallClick,
-                    modifier = Modifier.testTag("detail_simulate_btn"),
+                    onClick = onLogCallClick,
+                    modifier = Modifier.testTag("detail_log_call_btn"),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Filled.PlayArrow, contentDescription = "Simulate Call", modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Check, contentDescription = "Log Call", modifier = Modifier.size(18.dp))
                 }
             }
 

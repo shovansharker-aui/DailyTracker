@@ -66,6 +66,11 @@ data class KinKeepUiState(
 )
 
 class KinKeepViewModel(application: Application) : AndroidViewModel(application) {
+
+    companion object {
+        private const val TAG = "KinKeepViewModel"
+        private const val MANUAL_CALL_DEFAULT_DURATION_SECONDS = 300
+    }
     private val database = KinKeepDatabase.getDatabase(application)
     private val repository = ContactRepository(database.contactDao(), application)
 
@@ -205,7 +210,7 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
         try {
             com.dailytracker.app.util.CallReminderManager.checkAndTriggerReminders(getApplication(), statsList)
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e(TAG, "Failed to check/trigger call reminders", e)
         }
 
         state
@@ -387,17 +392,22 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
 
 
 
-    fun simulateCallFromSystem(contact: TrackedContact) {
+    /**
+     * Manually logs a call the user made outside the app (e.g. dialed straight from
+     * their phone app). Uses a fixed, sensible default duration since we have no way
+     * of knowing the real one — this is a deliberate manual log entry, not a guess.
+     */
+    fun logManualCall(contact: TrackedContact) {
         viewModelScope.launch(Dispatchers.IO) {
             val now = System.currentTimeMillis()
             repository.logCallForContact(
                 contactId = contact.id,
                 timestamp = now,
-                durationSeconds = (180..600).random(),
-                callType = if (Math.random() > 0.3) "OUTGOING" else "INCOMING",
-                notes = "Simulated call history entry"
+                durationSeconds = MANUAL_CALL_DEFAULT_DURATION_SECONDS,
+                callType = "OUTGOING",
+                notes = "Manually logged call"
             )
-            _syncMessage.value = "Simulated new phone call with ${contact.name}!"
+            _syncMessage.value = "Logged a call with ${contact.name}"
         }
     }
 }

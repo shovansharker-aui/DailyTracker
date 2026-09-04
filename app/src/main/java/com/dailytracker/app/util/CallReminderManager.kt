@@ -253,7 +253,7 @@ class CallReminderManager : BroadcastReceiver() {
                     pendingIntent
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
+                android.util.Log.e("CallReminderManager", "Failed to schedule periodic alarm", e)
             }
         }
     }

@@ -17,7 +17,7 @@ object BackupManager {
         val officeDb = OfficeTrackerDatabase.getDatabase(context)
         val attendanceDao = officeDb.attendanceDao()
         val govtHolidayDao = officeDb.govtHolidayDao()
-        val prefs = context.getSharedPreferences("super_app_prefs", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("superapp_prefs", Context.MODE_PRIVATE)
 
         val rootJson = JSONObject()
         rootJson.put("version", 1)
@@ -131,7 +131,7 @@ object BackupManager {
         val officeDb = OfficeTrackerDatabase.getDatabase(context)
         val attendanceDao = officeDb.attendanceDao()
         val govtHolidayDao = officeDb.govtHolidayDao()
-        val prefs = context.getSharedPreferences("super_app_prefs", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("superapp_prefs", Context.MODE_PRIVATE)
 
         val content = StringBuilder()
         context.contentResolver.openInputStream(uri)?.use { inputStream ->

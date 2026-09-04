@@ -92,7 +92,7 @@ class AttendanceReminderReceiver : BroadcastReceiver() {
                     pendingIntent
                 )
             } catch (e: Exception) {
-                e.printStackTrace()
+                android.util.Log.e("AttendanceReminder", "Failed to schedule daily 9pm reminder", e)
             }
         }
     }

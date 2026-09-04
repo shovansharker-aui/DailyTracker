@@ -249,7 +249,7 @@ fun AddEditContactSheet(
                         phoneError = false
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    android.util.Log.e("AddEditContactSheet", "Failed to fetch contact phone numbers", e)
                 }
             }
         }
