@@ -85,7 +85,10 @@ fun OfficeTrackerDashboard(
     val allRecordsMap by viewModel.allRecordsMap.collectAsStateWithLifecycle()
     val govtHolidaysSet by viewModel.govtHolidaysSet.collectAsStateWithLifecycle()
 
-    val todayIso = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
+    // Locale.US to match the Locale.US keys built below (dateStr) and in
+    // OfficeTrackerCalculator — this is a machine-readable key, not display text, so it
+    // must not vary with the device's digit system.
+    val todayIso = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
 
     val calendarCells = remember(selectedCalendar, allRecordsMap, govtHolidaysSet) {
         val cells = mutableListOf<CalendarGridCell>()

@@ -60,6 +60,10 @@ class ContactRepository(
         return records.size
     }
 
+    /** True if this contact already has a logged call at or after [sinceTimestamp]. */
+    suspend fun hasCallRecordSince(contactId: Long, sinceTimestamp: Long): Boolean =
+        contactDao.getCallRecordsSince(contactId, sinceTimestamp).isNotEmpty()
+
     suspend fun syncDeviceCallLogs(contacts: List<TrackedContact>): Int {
         return callLogScanner.scanCallLogsAndSync(contacts)
     }

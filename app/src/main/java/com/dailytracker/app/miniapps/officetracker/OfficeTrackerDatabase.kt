@@ -21,7 +21,12 @@ abstract class OfficeTrackerDatabase : RoomDatabase() {
                     OfficeTrackerDatabase::class.java,
                     "office_tracker_database"
                 )
-                .fallbackToDestructiveMigration()
+                // Only version 1 (already shipped) is allowed to fall back to a
+                // destructive rebuild. Any FUTURE version bump without a real Migration
+                // will now throw loudly during development instead of silently wiping
+                // every attendance record and holiday on real devices. When you bump
+                // `version` above, add a `Migration` via `.addMigrations(...)` first.
+                .fallbackToDestructiveMigrationFrom(1)
                 .build()
                 INSTANCE = instance
                 instance

@@ -20,7 +20,12 @@ abstract class KinKeepDatabase : RoomDatabase() {
                     KinKeepDatabase::class.java,
                     "kinkeep_database"
                 )
-                .fallbackToDestructiveMigration()
+                // Only versions already shipped (1, 2) are allowed to fall back to a
+                // destructive rebuild. Any FUTURE version bump without a real Migration
+                // will now throw loudly during development instead of silently wiping
+                // every contact and call record on real devices. When you bump
+                // `version` above, add a `Migration` via `.addMigrations(...)` first.
+                .fallbackToDestructiveMigrationFrom(1, 2)
                 .build()
                 INSTANCE = instance
                 instance

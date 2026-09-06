@@ -11,16 +11,35 @@ import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import com.dailytracker.app.MainActivity
+import com.dailytracker.app.data.ContactRepository
 import com.dailytracker.app.data.FrequencyPeriod
+import com.dailytracker.app.data.KinKeepDatabase
 import com.dailytracker.app.data.TrackedContact
 import com.dailytracker.app.ui.ContactWithStats
+import com.dailytracker.app.ui.getContactsWithStats
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 class CallReminderManager : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent?) {
-        // Broadcast received from AlarmManager or boot
-        // The ViewModel / App handles live checks, but this receiver can trigger a check
+        // This fires from AlarmManager whether or not the app is running, so it has to
+        // load contacts itself rather than relying on a live ViewModel. goAsync() keeps
+        // the process alive long enough for that background work to finish.
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val repository = ContactRepository(KinKeepDatabase.getDatabase(context).contactDao(), context)
+                val statsList = repository.getContactsWithStats()
+                checkAndTriggerReminders(context, statsList)
+            } catch (e: Exception) {
+                android.util.Log.e("CallReminderManager", "Failed to check reminders in background", e)
+            } finally {
+                pendingResult.finish()
+            }
+        }
     }
 
     companion object {

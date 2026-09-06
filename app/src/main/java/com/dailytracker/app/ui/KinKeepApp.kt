@@ -522,6 +522,7 @@ fun KinKeepApp(
                                 ContactCard(
                                     item = item,
                                     onCardClick = { viewModel.openContactDetails(item) },
+                                    onMarkCalledToday = { viewModel.logManualCall(item.contact) },
                                     onTogglePin = { viewModel.togglePin(item.contact) },
                                     onEditClick = { viewModel.openEditContactSheet(item.contact) },
                                     onDeleteClick = { viewModel.deleteContact(item.contact) },

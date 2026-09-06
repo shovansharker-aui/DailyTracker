@@ -5,6 +5,8 @@ import android.net.Uri
 import com.dailytracker.app.miniapps.officetracker.AttendanceRecord
 import com.dailytracker.app.miniapps.officetracker.GovtHoliday
 import com.dailytracker.app.miniapps.officetracker.OfficeTrackerDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -12,7 +14,11 @@ import java.io.InputStreamReader
 
 object BackupManager {
 
-    suspend fun exportBackup(context: Context, uri: Uri) {
+    // Both functions below do blocking file + database I/O (including a raw
+    // RoomDatabase.query() call that asserts it isn't running on the main thread).
+    // Dispatching here, once, means every caller gets thread-safety for free instead
+    // of having to remember to launch on Dispatchers.IO themselves.
+    suspend fun exportBackup(context: Context, uri: Uri) = withContext(Dispatchers.IO) {
         val kinKeepDao = KinKeepDatabase.getDatabase(context).contactDao()
         val officeDb = OfficeTrackerDatabase.getDatabase(context)
         val attendanceDao = officeDb.attendanceDao()
@@ -126,7 +132,7 @@ object BackupManager {
         } ?: throw Exception("Could not open output stream")
     }
 
-    suspend fun importBackup(context: Context, uri: Uri) {
+    suspend fun importBackup(context: Context, uri: Uri) = withContext(Dispatchers.IO) {
         val kinKeepDao = KinKeepDatabase.getDatabase(context).contactDao()
         val officeDb = OfficeTrackerDatabase.getDatabase(context)
         val attendanceDao = officeDb.attendanceDao()

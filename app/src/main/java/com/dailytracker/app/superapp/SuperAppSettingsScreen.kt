@@ -30,7 +30,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -329,32 +328,6 @@ fun SuperAppSettingsScreen(
                                 )
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        // 3-position Slider Control
-                        val sliderPosition = when (themeMode) {
-                            "MONOCHROME" -> 0f
-                            "DARK" -> 1f
-                            "LIGHT" -> 2f
-                            else -> 0f
-                        }
-
-                        Slider(
-                            value = sliderPosition,
-                            onValueChange = { valPos ->
-                                when (valPos.toInt()) {
-                                    0 -> viewModel.setThemeMode("MONOCHROME")
-                                    1 -> viewModel.setThemeMode("DARK")
-                                    2 -> viewModel.setThemeMode("LIGHT")
-                                }
-                            },
-                            valueRange = 0f..2f,
-                            steps = 1,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("theme_mode_slider")
-                        )
                     }
                 }
             }
