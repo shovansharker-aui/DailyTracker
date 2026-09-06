@@ -36,7 +36,7 @@ class BluetoothTrackerViewModel(application: Application) : AndroidViewModel(app
     private val _isScanning = MutableStateFlow(false)
     val isScanning = _isScanning.asStateFlow()
 
-    private val _hasPermissions = MutableStateFlow(checkPermissions())
+    private val _hasPermissions = MutableStateFlow(computeHasPermissions())
     val hasPermissions = _hasPermissions.asStateFlow()
 
     private val _selectedDevice = MutableStateFlow<TrackedBluetoothDevice?>(null)
@@ -52,14 +52,27 @@ class BluetoothTrackerViewModel(application: Application) : AndroidViewModel(app
         startRssiSimulation()
     }
 
-    fun checkPermissions(): Boolean {
-        val scan = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    /**
+     * Pure permission check — does NOT touch [_hasPermissions]. Kept separate from
+     * [checkPermissions] because this is also called from [_hasPermissions]'s own
+     * property initializer above; writing to [_hasPermissions] from in here would read
+     * that property before it's assigned (previously papered over with a `?.` safe
+     * call on an otherwise non-null property — easy to "clean up" by mistake and
+     * reintroduce a crash on every launch of this screen).
+     */
+    private fun computeHasPermissions(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
                     ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
         } else {
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         }
-        _hasPermissions?.value = scan
+    }
+
+    /** Re-checks permissions right now and updates [hasPermissions] with the result. */
+    fun checkPermissions(): Boolean {
+        val scan = computeHasPermissions()
+        _hasPermissions.value = scan
         return scan
     }
 

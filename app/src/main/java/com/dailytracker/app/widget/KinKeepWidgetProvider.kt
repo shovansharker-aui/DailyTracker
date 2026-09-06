@@ -10,9 +10,11 @@ import android.view.View
 import android.widget.RemoteViews
 import com.dailytracker.app.MainActivity
 import com.dailytracker.app.R
+import com.dailytracker.app.data.ContactRepository
 import com.dailytracker.app.data.ContactStatus
 import com.dailytracker.app.data.KinKeepDatabase
 import com.dailytracker.app.ui.ContactWithStats
+import com.dailytracker.app.ui.getContactsWithStats
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -47,20 +49,8 @@ class KinKeepWidgetProvider : AppWidgetProvider() {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val db = KinKeepDatabase.getDatabase(context)
-                    val dao = db.contactDao()
-                    val contacts = dao.getAllContactsList()
-                    val now = System.currentTimeMillis()
-
-                    val contactsWithStats = contacts.map { contact ->
-                        val periodStart = com.dailytracker.app.data.CallLogScanner.getStartOfPeriodTimestamp(contact.getPeriodEnum(), now)
-                        val records = dao.getCallRecordsSince(contact.id, periodStart)
-                        val callsInPeriod = records.size
-                        val status = contact.getCalculatedStatus(callsInPeriod)
-                        val daysSince = if (contact.lastCalledTimestamp > 0L) {
-                            (now - contact.lastCalledTimestamp) / (24 * 60 * 60 * 1000L)
-                        } else null
-                        ContactWithStats(contact, callsInPeriod, status, daysSince)
-                    }
+                    val repository = ContactRepository(db.contactDao(), context)
+                    val contactsWithStats = repository.getContactsWithStats()
 
                     val top3 = contactsWithStats
                         .filter {

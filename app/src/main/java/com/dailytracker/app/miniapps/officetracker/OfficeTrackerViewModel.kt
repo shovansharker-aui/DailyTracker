@@ -23,8 +23,12 @@ class OfficeTrackerViewModel(application: Application) : AndroidViewModel(applic
     private val dao = db.attendanceDao()
     private val govtHolidayDao = db.govtHolidayDao()
 
-    private val sdfYearMonth = SimpleDateFormat("yyyy-MM", Locale.getDefault())
-    private val sdfIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    // yyyy-MM is a machine-readable key that prefix-matches the `date` primary key in
+    // AttendanceDao — it must stay in Locale.US so its digits always match the
+    // Locale.US date keys built in OfficeTrackerDashboard/OfficeTrackerCalculator,
+    // regardless of the device's locale (a locale with non-Latin digits would
+    // otherwise make every month query return nothing).
+    private val sdfYearMonth = SimpleDateFormat("yyyy-MM", Locale.US)
 
     private val _selectedCalendar = MutableStateFlow(Calendar.getInstance())
     val selectedCalendar: StateFlow<Calendar> = _selectedCalendar.asStateFlow()

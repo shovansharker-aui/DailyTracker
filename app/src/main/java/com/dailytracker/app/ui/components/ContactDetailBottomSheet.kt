@@ -241,8 +241,11 @@ fun ContactDetailBottomSheet(
             ) {
                 Button(
                     onClick = {
+                        // Dial only the first number, not the raw comma-joined field —
+                        // contacts can hold more than one phone number.
+                        val primaryPhone = contact.getPhoneNumbersList().firstOrNull() ?: contact.phoneNumber
                         val dialIntent = Intent(Intent.ACTION_DIAL).apply {
-                            data = Uri.parse("tel:${contact.phoneNumber}")
+                            data = Uri.parse("tel:$primaryPhone")
                         }
                         context.startActivity(dialIntent)
                     },

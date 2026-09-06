@@ -46,11 +46,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,40 +75,28 @@ fun DeviceTrackingScreen(
 ) {
     var parkingBeepEnabled by remember { mutableStateOf(false) }
 
-    // Sound Generator logic for Parking Beep Mode
-    DisposableEffect(parkingBeepEnabled, device.rssi) {
-        var toneGen: ToneGenerator? = null
-        if (parkingBeepEnabled) {
-            try {
-                toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 70)
-            } catch (e: Exception) {
-                Log.e("DeviceTrackingScreen", "Error initializing ToneGenerator", e)
-            }
-        }
+    // Live RSSI, readable from inside the loop below without making it a LaunchedEffect
+    // key — device.rssi changes roughly every 1.5s from the view model's simulation,
+    // and keying the effect on it (as an earlier version of this did) tore down and
+    // recreated the ToneGenerator and the beep loop on every tick, so the beep cadence
+    // never got a chance to settle.
+    val latestRssi = rememberUpdatedState(device.rssi)
 
-        onDispose {
-            try {
-                toneGen?.release()
-            } catch (e: Exception) {
-                Log.e("DeviceTrackingScreen", "Error releasing ToneGenerator", e)
-            }
-        }
-    }
-
-    LaunchedEffect(parkingBeepEnabled, device.rssi) {
+    // Sound Generator logic for Parking Beep Mode. Keyed on parkingBeepEnabled only.
+    LaunchedEffect(parkingBeepEnabled) {
         if (!parkingBeepEnabled) return@LaunchedEffect
 
         var toneGen: ToneGenerator? = null
         try {
             toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 70)
         } catch (e: Exception) {
-            Log.e("DeviceTrackingScreen", "Error creating ToneGenerator in coroutine", e)
+            Log.e("DeviceTrackingScreen", "Error creating ToneGenerator", e)
         }
 
         try {
-            while (isActive && parkingBeepEnabled) {
+            while (isActive) {
                 // Calculate beep interval based on RSSI (-40 dBm -> 150ms delay, -90 dBm -> 1200ms delay)
-                val rssiClamped = device.rssi.coerceIn(-95, -40)
+                val rssiClamped = latestRssi.value.coerceIn(-95, -40)
                 val fraction = (rssiClamped + 95) / 55.0 // 0.0 (weakest) to 1.0 (strongest)
                 val delayMs = (1200 - (fraction * 1050)).toLong().coerceIn(120, 1500)
 

@@ -4,11 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.dailytracker.app.data.CallRecord
-import com.dailytracker.app.data.ContactDao
 import com.dailytracker.app.data.ContactRepository
 import com.dailytracker.app.data.ContactStatus
 import com.dailytracker.app.data.KinKeepDatabase
 import com.dailytracker.app.data.TrackedContact
+import com.dailytracker.app.util.WhatsAppCallListenerService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 data class ContactWithStats(
     val contact: TrackedContact,
@@ -70,6 +69,13 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
     companion object {
         private const val TAG = "KinKeepViewModel"
         private const val MANUAL_CALL_DEFAULT_DURATION_SECONDS = 300
+        // Lower-confidence than a manual log, so a smaller nominal duration than
+        // MANUAL_CALL_DEFAULT_DURATION_SECONDS.
+        private const val WHATSAPP_AUTO_LOG_DEFAULT_DURATION_SECONDS = 60
+        // WhatsApp reposts an updated notification for the same call several times
+        // (ringing -> ongoing -> ended); this window stops those from each logging
+        // their own call record.
+        private const val WHATSAPP_DEDUPE_WINDOW_MS = 3 * 60 * 1000L
     }
     private val database = KinKeepDatabase.getDatabase(application)
     private val repository = ContactRepository(database.contactDao(), application)
@@ -96,14 +102,43 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
     private val _contactToEdit = MutableStateFlow<TrackedContact?>(null)
     val contactToEdit = _contactToEdit.asStateFlow()
 
-    // Night mode preferences
-    private val prefs = application.getSharedPreferences("kinkeep_prefs", android.content.Context.MODE_PRIVATE)
-    private val _nightMode = MutableStateFlow(prefs.getString("night_mode", "SYSTEM") ?: "SYSTEM")
-    val nightMode = _nightMode.asStateFlow()
+    init {
+        // Auto-log a call whenever WhatsAppCallListenerService detects a WhatsApp call
+        // notification. WhatsApp (VoIP) calls never appear in the system call log, so
+        // without this, KinKeep has no way to see them at all.
+        viewModelScope.launch {
+            WhatsAppCallListenerService.whatsappCallEvents.collect { candidateText ->
+                handleWhatsAppCallDetected(candidateText)
+            }
+        }
+    }
 
-    fun setNightMode(mode: String) {
-        _nightMode.value = mode
-        prefs.edit().putString("night_mode", mode).apply()
+    private suspend fun handleWhatsAppCallDetected(candidateText: String) {
+        val normalizedCandidate = candidateText.trim().lowercase()
+        if (normalizedCandidate.isBlank()) return
+
+        // Best-effort match: the WhatsApp notification title is usually the caller's
+        // WhatsApp display name. If it doesn't clearly name exactly one tracked
+        // contact, skip rather than risk logging a call against the wrong person.
+        val contacts = repository.allContacts.first()
+        val matches = contacts.filter { contact ->
+            val contactName = contact.name.trim().lowercase()
+            contactName.isNotBlank() && normalizedCandidate.contains(contactName)
+        }
+        val match = matches.singleOrNull() ?: return
+
+        val now = System.currentTimeMillis()
+        val alreadyLogged = repository.hasCallRecordSince(match.id, now - WHATSAPP_DEDUPE_WINDOW_MS)
+        if (alreadyLogged) return // WhatsApp reposts the same call's notification repeatedly.
+
+        repository.logCallForContact(
+            contactId = match.id,
+            timestamp = now,
+            durationSeconds = WHATSAPP_AUTO_LOG_DEFAULT_DURATION_SECONDS,
+            callType = "OUTGOING",
+            notes = "Auto-detected WhatsApp call"
+        )
+        _syncMessage.value = "Logged a WhatsApp call with ${match.name}"
     }
 
     val uiState: StateFlow<KinKeepUiState> = combine(
@@ -114,17 +149,7 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
         _syncMessage
     ) { contacts, callRecords, filter, loading, msg ->
         val now = System.currentTimeMillis()
-        val statsList = contacts.map { contact ->
-            val periodCalls = repository.getCallsInCurrentPeriod(contact)
-            val status = contact.getCalculatedStatus(periodCalls, now)
-            val daysSince = contact.getDaysSinceLastCall(now)
-            ContactWithStats(
-                contact = contact,
-                callsInCurrentPeriod = periodCalls,
-                status = status,
-                daysSinceLastCall = daysSince
-            )
-        }
+        val statsList = contacts.map { contact -> contact.toContactWithStats(repository, now) }
 
         val onTrackCount = statsList.count { it.status == ContactStatus.ON_TRACK }
         val pendingCount = statsList.count { it.status == ContactStatus.DUE_SOON }
@@ -366,31 +391,8 @@ class KinKeepViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
-
-
-    fun exportBackup(context: android.content.Context, uri: android.net.Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                com.dailytracker.app.data.BackupManager.exportBackup(context, uri)
-                _syncMessage.value = "Backup saved"
-            } catch (e: Exception) {
-                _syncMessage.value = "Export failed: ${e.message}"
-            }
-        }
-    }
-
-    fun importBackup(context: android.content.Context, uri: android.net.Uri) {
-        viewModelScope.launch(Dispatchers.IO) {
-            try {
-                com.dailytracker.app.data.BackupManager.importBackup(context, uri)
-                _syncMessage.value = "Backup restored"
-            } catch (e: Exception) {
-                _syncMessage.value = "Restore failed: ${e.message}"
-            }
-        }
-    }
-
-
+    // Backup/restore lives in BackupManager itself (which dispatches its own I/O), and
+    // is invoked directly from SuperAppSettingsScreen — no wrapper needed here.
 
     /**
      * Manually logs a call the user made outside the app (e.g. dialed straight from
