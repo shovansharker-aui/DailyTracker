@@ -10,6 +10,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.dailytracker.app.miniapps.bluetoothtracker.BluetoothTrackerScreen
+import com.dailytracker.app.miniapps.flashlight.FlashlightScreen
 import com.dailytracker.app.miniapps.kinkeep.KinKeepMiniApp
 import com.dailytracker.app.miniapps.officetracker.OfficeTrackerScreen
 import com.dailytracker.app.ui.KinKeepViewModel
@@ -71,6 +72,16 @@ fun SuperAppNavHost(
 
         composable("officetracker") {
             OfficeTrackerScreen(
+                onNavigateToHome = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("flashlight") {
+            FlashlightScreen(
                 onNavigateToHome = {
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = true }

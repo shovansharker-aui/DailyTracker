@@ -23,6 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
@@ -151,6 +152,7 @@ fun MiniAppTileCard(
     val (icon, iconBg) = when (item.id) {
         "kinkeep" -> Icons.Default.PhoneInTalk to MaterialTheme.colorScheme.primaryContainer
         "bluetoothtracker" -> Icons.Default.BluetoothSearching to MaterialTheme.colorScheme.secondaryContainer
+        "flashlight" -> Icons.Default.FlashlightOn to MaterialTheme.colorScheme.secondaryContainer
         else -> Icons.Default.Business to MaterialTheme.colorScheme.tertiaryContainer
     }
 

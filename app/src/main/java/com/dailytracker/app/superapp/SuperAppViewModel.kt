@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class SuperAppViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("superapp_prefs", Context.MODE_PRIVATE)
 
-    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker")
+    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker", "flashlight")
 
     val allMiniApps = listOf(
         SuperAppItem(
@@ -34,6 +34,14 @@ class SuperAppViewModel(application: Application) : AndroidViewModel(application
             category = "Workplace & Schedule",
             description = "Duty attendance & salary calculator",
             route = "officetracker",
+            badge = null
+        ),
+        SuperAppItem(
+            id = "flashlight",
+            name = "Flashlight",
+            category = "Hardware & Utilities",
+            description = "Toggle the torch, or let it turn on automatically when it's dark",
+            route = "flashlight",
             badge = null
         )
     )
