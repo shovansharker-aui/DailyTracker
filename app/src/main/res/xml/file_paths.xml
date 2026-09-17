@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Business Card Organizer stores captured card photos here before
+         they're read into memory and sent to Gemini. -->
+    <cache-path name="business_card_photos" path="." />
+</paths>
