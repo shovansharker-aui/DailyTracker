@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Daily Tracker</string>
+    <string name="data_confirm_service_label">Daily Tracker Data Auto Confirm</string>
+    <string name="data_confirm_service_description">Automatically confirms the \"Turn on mobile data?\" system dialog so you do not have to tap it every time.</string>
 </resources>

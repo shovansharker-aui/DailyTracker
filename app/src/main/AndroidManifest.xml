@@ -91,6 +91,20 @@
             android:exported="false"
             android:foregroundServiceType="camera" />
 
+        <!-- Data Auto Confirm mini-app -->
+        <service
+            android:name=".miniapps.dataautoconfirm.DataConfirmService"
+            android:exported="true"
+            android:label="@string/data_confirm_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/data_confirm_accessibility_config" />
+        </service>
+
         <receiver
             android:name=".widget.KinKeepWidgetProvider"
             android:exported="true">

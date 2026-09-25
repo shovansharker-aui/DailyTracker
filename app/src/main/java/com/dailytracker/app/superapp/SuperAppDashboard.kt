@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.FlashlightOn
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SignalCellularAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -153,6 +154,7 @@ fun MiniAppTileCard(
         "kinkeep" -> Icons.Default.PhoneInTalk to MaterialTheme.colorScheme.primaryContainer
         "bluetoothtracker" -> Icons.Default.BluetoothSearching to MaterialTheme.colorScheme.secondaryContainer
         "flashlight" -> Icons.Default.FlashlightOn to MaterialTheme.colorScheme.secondaryContainer
+        "dataautoconfirm" -> Icons.Default.SignalCellularAlt to MaterialTheme.colorScheme.secondaryContainer
         else -> Icons.Default.Business to MaterialTheme.colorScheme.tertiaryContainer
     }
 

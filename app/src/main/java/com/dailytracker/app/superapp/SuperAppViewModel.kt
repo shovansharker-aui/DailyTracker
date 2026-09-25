@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class SuperAppViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("superapp_prefs", Context.MODE_PRIVATE)
 
-    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker", "flashlight", "businesscard")
+    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker", "flashlight", "businesscard", "dataautoconfirm")
 
     val allMiniApps = listOf(
         SuperAppItem(
@@ -50,6 +50,14 @@ class SuperAppViewModel(application: Application) : AndroidViewModel(application
             category = "Contacts & Networking",
             description = "Scan business cards and organize vendor/distributor contacts",
             route = "businesscard",
+            badge = null
+        ),
+        SuperAppItem(
+            id = "dataautoconfirm",
+            name = "Data Auto Confirm",
+            category = "Hardware & Utilities",
+            description = "Auto-tap \"Turn on\" in the mobile data dialog",
+            route = "dataautoconfirm",
             badge = null
         )
     )
