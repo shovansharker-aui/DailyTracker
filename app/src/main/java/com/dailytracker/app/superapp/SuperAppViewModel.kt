@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class SuperAppViewModel(application: Application) : AndroidViewModel(application) {
     private val prefs = application.getSharedPreferences("superapp_prefs", Context.MODE_PRIVATE)
 
-    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker", "flashlight", "businesscard", "dataautoconfirm")
+    private val defaultOrder = listOf("kinkeep", "bluetoothtracker", "officetracker", "flashlight", "businesscard", "dataautoconfirm", "heartrate")
 
     val allMiniApps = listOf(
         SuperAppItem(
@@ -59,6 +59,14 @@ class SuperAppViewModel(application: Application) : AndroidViewModel(application
             description = "Auto-tap \"Turn on\" in the mobile data dialog",
             route = "dataautoconfirm",
             badge = null
+        ),
+        SuperAppItem(
+            id = "heartrate",
+            name = "Heart Rate",
+            category = "Health & Wellness",
+            description = "Estimate your pulse with the camera and flash",
+            route = "heartrate",
+            badge = null
         )
     )
 
@@ -67,6 +75,9 @@ class SuperAppViewModel(application: Application) : AndroidViewModel(application
 
     private val _themeMode = MutableStateFlow(prefs.getString("theme_mode", "MONOCHROME") ?: "MONOCHROME")
     val themeMode = _themeMode.asStateFlow()
+
+    private val _viewMode = MutableStateFlow(prefs.getString("view_mode", "LIST") ?: "LIST")
+    val viewMode = _viewMode.asStateFlow()
 
     private val _pendingNavigationRoute = MutableStateFlow<String?>(null)
     val pendingNavigationRoute = _pendingNavigationRoute.asStateFlow()
@@ -82,6 +93,11 @@ class SuperAppViewModel(application: Application) : AndroidViewModel(application
     fun setThemeMode(mode: String) {
         _themeMode.value = mode
         prefs.edit().putString("theme_mode", mode).apply()
+    }
+
+    fun setViewMode(mode: String) {
+        _viewMode.value = mode
+        prefs.edit().putString("view_mode", mode).apply()
     }
 
     private fun loadOrder(): List<String> {

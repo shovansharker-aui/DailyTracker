@@ -13,6 +13,7 @@ import com.dailytracker.app.miniapps.bluetoothtracker.BluetoothTrackerScreen
 import com.dailytracker.app.miniapps.businesscard.BusinessCardScreen
 import com.dailytracker.app.miniapps.dataautoconfirm.DataAutoConfirmScreen
 import com.dailytracker.app.miniapps.flashlight.FlashlightScreen
+import com.dailytracker.app.miniapps.heartrate.HeartRateScreen
 import com.dailytracker.app.miniapps.kinkeep.KinKeepMiniApp
 import com.dailytracker.app.miniapps.officetracker.OfficeTrackerScreen
 import com.dailytracker.app.ui.KinKeepViewModel
@@ -104,6 +105,16 @@ fun SuperAppNavHost(
 
         composable("dataautoconfirm") {
             DataAutoConfirmScreen(
+                onNavigateToHome = {
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable("heartrate") {
+            HeartRateScreen(
                 onNavigateToHome = {
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = true }

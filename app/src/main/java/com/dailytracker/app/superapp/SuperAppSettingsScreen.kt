@@ -16,10 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -68,6 +70,7 @@ fun SuperAppSettingsScreen(
 ) {
     val miniAppOrder by viewModel.miniAppOrder.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -254,6 +257,78 @@ fun SuperAppSettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text("Reset Default Order")
+                        }
+                    }
+                }
+            }
+
+            // DASHBOARD LAYOUT SECTION
+            item {
+                Text(
+                    text = "DASHBOARD LAYOUT",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    ),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Mini-App View",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Text(
+                            text = "List shows one app per row. Grid shows two columns of compact tiles.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val viewOptions = listOf(
+                            "LIST" to ("List" to Icons.Default.ViewList),
+                            "GRID" to ("Grid" to Icons.Default.GridView)
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            viewOptions.forEach { (modeKey, labelAndIcon) ->
+                                val (modeLabel, modeIcon) = labelAndIcon
+                                val isSelected = viewMode == modeKey
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { viewModel.setViewMode(modeKey) },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = modeIcon,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    label = {
+                                        Text(
+                                            text = modeLabel,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .testTag("view_mode_option_${modeKey.lowercase()}")
+                                )
+                            }
                         }
                     }
                 }

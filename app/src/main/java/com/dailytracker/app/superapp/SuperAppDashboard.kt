@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.BluetoothSearching
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SignalCellularAlt
@@ -59,6 +60,8 @@ fun SuperAppDashboard(
     modifier: Modifier = Modifier
 ) {
     val miniAppOrder by viewModel.miniAppOrder.collectAsStateWithLifecycle()
+    val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
+    val isGrid = viewMode == "GRID"
     val orderedApps = miniAppOrder.mapNotNull { id ->
         viewModel.allMiniApps.find { it.id == id }
     }
@@ -126,8 +129,9 @@ fun SuperAppDashboard(
             )
 
             LazyVerticalGrid(
-                columns = GridCells.Fixed(1),
+                columns = GridCells.Fixed(if (isGrid) 2 else 1),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(
@@ -136,6 +140,7 @@ fun SuperAppDashboard(
                 ) { item ->
                     MiniAppTileCard(
                         item = item,
+                        isGrid = isGrid,
                         onClick = { onMiniAppClick(item) }
                     )
                 }
@@ -148,6 +153,7 @@ fun SuperAppDashboard(
 fun MiniAppTileCard(
     item: SuperAppItem,
     onClick: () -> Unit,
+    isGrid: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val (icon, iconBg) = when (item.id) {
@@ -155,7 +161,82 @@ fun MiniAppTileCard(
         "bluetoothtracker" -> Icons.Default.BluetoothSearching to MaterialTheme.colorScheme.secondaryContainer
         "flashlight" -> Icons.Default.FlashlightOn to MaterialTheme.colorScheme.secondaryContainer
         "dataautoconfirm" -> Icons.Default.SignalCellularAlt to MaterialTheme.colorScheme.secondaryContainer
+        "heartrate" -> Icons.Default.Favorite to MaterialTheme.colorScheme.primaryContainer
         else -> Icons.Default.Business to MaterialTheme.colorScheme.tertiaryContainer
+    }
+
+    if (isGrid) {
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .clickable { onClick() }
+                .testTag("miniapp_tile_${item.id}")
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(iconBg)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = item.name,
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 2
+                    )
+                }
+
+                if (item.badge != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            text = item.badge,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = item.category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
+        return
     }
 
     Card(
